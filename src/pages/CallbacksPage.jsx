@@ -1,22 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { toast } from "react-toastify";
+import { FiCheckCircle, FiRefreshCcw } from "react-icons/fi";
 import { callbacksApi } from "../api";
-import LoadingBar from "../components/LoadingBar";
+import LoadingOverlay from "../components/LoadingOverlay";
+import { initialCallbackForm, useAdminState } from "../context/AdminState.jsx";
 
 const LOCATION_OPTIONS = ["kolkata", "howrah", "bardhaman"];
 
-const initialCallback = {
-  fullName: "",
-  phoneNumber: "",
-  email: "",
-  location: LOCATION_OPTIONS[0],
-  description: "",
-  image: null,
-};
-
 const CallbackItem = ({ callback, onUpdate, disabled }) => {
-  const [status, setStatus] = useState(callback.status);
-  const [adminComment, setAdminComment] = useState(callback.adminComment || "");
+  const { callbacksState, setCallbacksState } = useAdminState();
+  const current = callbacksState.editStates[callback._id] || {
+    status: callback.status,
+    adminComment: callback.adminComment || "",
+  };
+
+  const updateEditState = (updates) => {
+    setCallbacksState((prev) => ({
+      ...prev,
+      editStates: {
+        ...prev.editStates,
+        [callback._id]: { ...current, ...updates },
+      },
+    }));
+  };
 
   return (
     <li className="list-item">
@@ -33,8 +39,8 @@ const CallbackItem = ({ callback, onUpdate, disabled }) => {
         <label>
           Status
           <select
-            value={status}
-            onChange={(event) => setStatus(event.target.value)}
+            value={current.status}
+            onChange={(event) => updateEditState({ status: event.target.value })}
             disabled={disabled}
           >
             <option value="pending">pending</option>
@@ -45,17 +51,20 @@ const CallbackItem = ({ callback, onUpdate, disabled }) => {
         <label>
           Admin comment
           <input
-            value={adminComment}
-            onChange={(event) => setAdminComment(event.target.value)}
+            value={current.adminComment}
+            onChange={(event) => updateEditState({ adminComment: event.target.value })}
             disabled={disabled}
           />
         </label>
         <button
           className="ghost"
           type="button"
-          onClick={() => onUpdate(callback._id, status, adminComment)}
+          onClick={() => onUpdate(callback._id, current.status, current.adminComment)}
           disabled={disabled}
         >
+          <span className="button-icon">
+            <FiCheckCircle aria-hidden />
+          </span>
           Update
         </button>
       </div>
@@ -64,20 +73,21 @@ const CallbackItem = ({ callback, onUpdate, disabled }) => {
 };
 
 const CallbacksPage = () => {
-  const [callbacks, setCallbacks] = useState([]);
-  const [form, setForm] = useState(initialCallback);
-  const [fileKey, setFileKey] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const { callbacksState, setCallbacksState } = useAdminState();
+  const { callbacks, form, fileKey, loading } = callbacksState;
+
+  const updateState = (updates) =>
+    setCallbacksState((prev) => ({ ...prev, ...updates }));
 
   const loadCallbacks = async () => {
-    setLoading(true);
+    updateState({ loading: true });
     try {
       const data = await callbacksApi.list();
-      setCallbacks(data);
+      updateState({ callbacks: data, editStates: {} });
     } catch (err) {
       toast.error(err.message);
     } finally {
-      setLoading(false);
+      updateState({ loading: false });
     }
   };
 
@@ -87,7 +97,7 @@ const CallbacksPage = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setLoading(true);
+    updateState({ loading: true });
 
     try {
       const formData = new FormData();
@@ -98,19 +108,22 @@ const CallbacksPage = () => {
       });
 
       await callbacksApi.create(formData);
-      setForm(initialCallback);
-      setFileKey((key) => key + 1);
+      setCallbacksState((prev) => ({
+        ...prev,
+        form: initialCallbackForm,
+        fileKey: prev.fileKey + 1,
+      }));
       toast.success("Callback request created.");
       loadCallbacks();
     } catch (err) {
       toast.error(err.message);
     } finally {
-      setLoading(false);
+      updateState({ loading: false });
     }
   };
 
   const handleUpdate = async (id, status, adminComment) => {
-    setLoading(true);
+    updateState({ loading: true });
     try {
       await callbacksApi.update(id, { status, adminComment });
       toast.success("Callback updated.");
@@ -118,7 +131,7 @@ const CallbacksPage = () => {
     } catch (err) {
       toast.error(err.message);
     } finally {
-      setLoading(false);
+      updateState({ loading: false });
     }
   };
 
@@ -134,107 +147,128 @@ const CallbacksPage = () => {
         </div>
       </div>
 
-      <LoadingBar active={loading} />
-
-      <div className="panel-grid">
-        <form className="card form" onSubmit={handleSubmit}>
-          <h2>New callback request</h2>
-          <div className="field">
-            <label>Full name</label>
-            <input
-              value={form.fullName}
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, fullName: event.target.value }))
-              }
-              required
-            />
-          </div>
-          <div className="field">
-            <label>Phone</label>
-            <input
-              value={form.phoneNumber}
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, phoneNumber: event.target.value }))
-              }
-              required
-            />
-          </div>
-          <div className="field">
-            <label>Email</label>
-            <input
-              type="email"
-              value={form.email}
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, email: event.target.value }))
-              }
-              required
-            />
-          </div>
-          <div className="field">
-            <label>Location</label>
+      <div className={loading ? "page-body is-loading" : "page-body"}>
+        <div className="page-content">
+          <div className="panel-grid">
+          <form className="card form" onSubmit={handleSubmit}>
+            <h2>New callback request</h2>
+            <div className="field">
+              <label>Full name</label>
+              <input
+                value={form.fullName}
+                onChange={(event) =>
+                  setCallbacksState((prev) => ({
+                    ...prev,
+                    form: { ...prev.form, fullName: event.target.value },
+                  }))
+                }
+                required
+              />
+            </div>
+            <div className="field">
+              <label>Phone</label>
+              <input
+                value={form.phoneNumber}
+                onChange={(event) =>
+                  setCallbacksState((prev) => ({
+                    ...prev,
+                    form: { ...prev.form, phoneNumber: event.target.value },
+                  }))
+                }
+                required
+              />
+            </div>
+            <div className="field">
+              <label>Email</label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(event) =>
+                  setCallbacksState((prev) => ({
+                    ...prev,
+                    form: { ...prev.form, email: event.target.value },
+                  }))
+                }
+                required
+              />
+            </div>
+            <div className="field">
+              <label>Location</label>
             <select
               value={form.location}
               onChange={(event) =>
-                setForm((prev) => ({ ...prev, location: event.target.value }))
-              }
-            >
-              {LOCATION_OPTIONS.map((location) => (
-                <option key={location} value={location}>
-                  {location}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label>Description</label>
-            <textarea
-              rows="3"
-              value={form.description}
-              onChange={(event) =>
-                setForm((prev) => ({ ...prev, description: event.target.value }))
-              }
-            />
-          </div>
-          <div className="field">
-            <label>Prescription / affected image</label>
-            <input
-              key={fileKey}
-              type="file"
-              accept="image/*"
-              onChange={(event) =>
-                setForm((prev) => ({
+                setCallbacksState((prev) => ({
                   ...prev,
-                  image: event.target.files[0] || null,
+                  form: { ...prev.form, location: event.target.value },
                 }))
               }
-              required
-            />
-          </div>
-          <button className="primary" type="submit" disabled={loading}>
-            Submit request
-          </button>
-        </form>
-
-        <div className="card list">
-          <div className="card-header">
-            <h2>Open callback requests</h2>
-            <button className="ghost" type="button" onClick={loadCallbacks} disabled={loading}>
-              Refresh
-            </button>
-          </div>
-          <ul>
-            {callbacks.map((callback) => (
-              <CallbackItem
-                key={callback._id}
-                callback={callback}
-                onUpdate={handleUpdate}
-                disabled={loading}
+            >
+                {LOCATION_OPTIONS.map((location) => (
+                  <option key={location} value={location}>
+                    {location}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label>Description</label>
+              <textarea
+                rows="3"
+                value={form.description}
+                onChange={(event) =>
+                  setCallbacksState((prev) => ({
+                    ...prev,
+                    form: { ...prev.form, description: event.target.value },
+                  }))
+                }
               />
-            ))}
-            {!callbacks.length && <li>No callback requests yet.</li>}
-          </ul>
+            </div>
+            <div className="field">
+              <label>Prescription / affected image</label>
+              <input
+                key={fileKey}
+                type="file"
+                accept="image/*"
+                onChange={(event) =>
+                  setCallbacksState((prev) => ({
+                    ...prev,
+                    form: { ...prev.form, image: event.target.files[0] || null },
+                  }))
+                }
+                required
+              />
+            </div>
+            <button className="primary" type="submit" disabled={loading}>
+              Submit request
+            </button>
+          </form>
+
+          <div className="card list">
+            <div className="card-header">
+              <h2>Open callback requests</h2>
+              <button className="ghost" type="button" onClick={loadCallbacks} disabled={loading}>
+                <span className="button-icon">
+                  <FiRefreshCcw aria-hidden />
+                </span>
+                Refresh
+              </button>
+            </div>
+            <ul>
+              {callbacks.map((callback) => (
+                <CallbackItem
+                  key={callback._id}
+                  callback={callback}
+                  onUpdate={handleUpdate}
+                  disabled={loading}
+                />
+              ))}
+              {!callbacks.length && <li>No callback requests yet.</li>}
+            </ul>
+          </div>
         </div>
-      </div>
+          </div>
+        </div>
+        <LoadingOverlay active={loading} />
     </section>
   );
 };

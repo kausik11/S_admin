@@ -1,21 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { toast } from "react-toastify";
+import { FiRefreshCcw } from "react-icons/fi";
 import { testimonialsApi } from "../api";
-import LoadingBar from "../components/LoadingBar";
+import LoadingOverlay from "../components/LoadingOverlay";
+import { useAdminState } from "../context/AdminState.jsx";
 
 const TestimonialsPage = () => {
-  const [testimonials, setTestimonials] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { testimonialsState, setTestimonialsState } = useAdminState();
+  const { testimonials, loading } = testimonialsState;
+
+  const updateState = (updates) =>
+    setTestimonialsState((prev) => ({ ...prev, ...updates }));
 
   const loadTestimonials = async () => {
-    setLoading(true);
+    updateState({ loading: true });
     try {
       const data = await testimonialsApi.list();
-      setTestimonials(data);
+      updateState({ testimonials: data });
     } catch (err) {
       toast.error(err.message);
     } finally {
-      setLoading(false);
+      updateState({ loading: false });
     }
   };
 
@@ -32,32 +37,38 @@ const TestimonialsPage = () => {
           <p className="subhead">Review and manage feedback highlights.</p>
         </div>
         <button className="ghost" type="button" onClick={loadTestimonials} disabled={loading}>
+          <span className="button-icon">
+            <FiRefreshCcw aria-hidden />
+          </span>
           Refresh
         </button>
       </div>
 
-      <LoadingBar active={loading} />
-
-      <div className="card list">
-        <div className="card-header">
-          <h2>Testimonials</h2>
-          <span className="muted">{testimonials.length} total</span>
+      <div className={loading ? "page-body is-loading" : "page-body"}>
+        <div className="page-content">
+          <div className="card list">
+            <div className="card-header">
+              <h2>Testimonials</h2>
+              <span className="muted">{testimonials.length} total</span>
+            </div>
+            <ul>
+              {testimonials.map((item) => (
+                <li key={item._id} className="list-item">
+                  <div>
+                    <h3>{item.fullName}</h3>
+                    <p className="muted">Rating: {item.rating}</p>
+                    <p>{item.message}</p>
+                  </div>
+                  <div className="list-actions">
+                    {item.imageUrl && <img src={item.imageUrl} alt={item.fullName} />}
+                  </div>
+                </li>
+              ))}
+              {!testimonials.length && <li>No testimonials yet.</li>}
+            </ul>
+          </div>
         </div>
-        <ul>
-          {testimonials.map((item) => (
-            <li key={item._id} className="list-item">
-              <div>
-                <h3>{item.fullName}</h3>
-                <p className="muted">Rating: {item.rating}</p>
-                <p>{item.message}</p>
-              </div>
-              <div className="list-actions">
-                {item.imageUrl && <img src={item.imageUrl} alt={item.fullName} />}
-              </div>
-            </li>
-          ))}
-          {!testimonials.length && <li>No testimonials yet.</li>}
-        </ul>
+        <LoadingOverlay active={loading} />
       </div>
     </section>
   );

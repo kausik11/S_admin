@@ -1,21 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { FiEdit2, FiPlus, FiRefreshCcw, FiTrash2 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { blogApi } from "../api";
-import LoadingBar from "../components/LoadingBar";
+import LoadingOverlay from "../components/LoadingOverlay";
+import { initialBlogForm, useAdminState } from "../context/AdminState.jsx";
+
+const CATEGORY_OPTIONS = ["cancer", "kidney", "heart", "nerve", "spinal", "other"];
 
 const BlogsPage = () => {
-  const [blogs, setBlogs] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { blogsState, setBlogsState } = useAdminState();
+  const { blogs, form, showForm, editingId, fileKey, loading } = blogsState;
+
+  const updateState = (updates) => setBlogsState((prev) => ({ ...prev, ...updates }));
 
   const loadBlogs = async () => {
-    setLoading(true);
+    updateState({ loading: true });
     try {
       const data = await blogApi.list();
-      setBlogs(data);
+      updateState({ blogs: data });
     } catch (err) {
       toast.error(err.message);
     } finally {
-      setLoading(false);
+      updateState({ loading: false });
     }
   };
 
@@ -23,44 +29,299 @@ const BlogsPage = () => {
     loadBlogs();
   }, []);
 
+  const resetForm = () => {
+    setBlogsState((prev) => ({
+      ...prev,
+      form: initialBlogForm,
+      editingId: "",
+      showForm: false,
+      fileKey: prev.fileKey + 1,
+    }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    updateState({ loading: true });
+
+    try {
+      const formData = new FormData();
+      formData.append("title", form.title);
+      formData.append("description", form.description);
+      formData.append("category", form.category);
+      formData.append("writtenBy", form.writtenBy);
+      formData.append("quickClinicalTip", form.quickClinicalTip);
+      if (form.metadata) formData.append("metadata", form.metadata);
+      if (form.image) formData.append("image", form.image);
+
+      if (editingId) {
+        await blogApi.update(editingId, formData);
+        toast.success("Blog updated.");
+      } else {
+        await blogApi.create(formData);
+        toast.success("Blog created.");
+      }
+
+      resetForm();
+      loadBlogs();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      updateState({ loading: false });
+    }
+  };
+
+  const handleEdit = (blog) => {
+    setBlogsState((prev) => ({
+      ...prev,
+      form: {
+        title: blog.title || "",
+        description: blog.description || "",
+        category: blog.category || CATEGORY_OPTIONS[0],
+        writtenBy: blog.writtenBy || "",
+        quickClinicalTip: blog.quickClinicalTip || "",
+        metadata: (blog.metadata || []).join(", "),
+        image: null,
+      },
+      editingId: blog._id,
+      showForm: true,
+      fileKey: prev.fileKey + 1,
+    }));
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this blog?")) return;
+    updateState({ loading: true });
+    try {
+      await blogApi.remove(id);
+      toast.success("Blog deleted.");
+      loadBlogs();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      updateState({ loading: false });
+    }
+  };
+
   return (
     <section className="page">
       <div className="page-header">
         <div>
-          <p className="eyebrow">Blogs</p>
-          <h1>Clinical Insights</h1>
-          <p className="subhead">Track blog entries and editorial highlights.</p>
+          <p className="eyebrow">Content</p>
+          <h1>Blogs</h1>
+          <p className="subhead">Create, edit, and manage blog content.</p>
         </div>
-        <button className="ghost" type="button" onClick={loadBlogs} disabled={loading}>
-          Refresh
+        <button
+          className="primary"
+          type="button"
+          onClick={() => {
+            setBlogsState((prev) => ({
+              ...prev,
+              showForm: true,
+              editingId: "",
+              form: initialBlogForm,
+              fileKey: prev.fileKey + 1,
+            }));
+          }}
+          disabled={loading}
+        >
+          <span className="button-icon">
+            <FiPlus aria-hidden />
+          </span>
+          New Blog
         </button>
       </div>
 
-      <LoadingBar active={loading} />
+      <div className={loading ? "page-body is-loading" : "page-body"}>
+        <div className="page-content">
+          {showForm && (
+            <div className="card form blog-form">
+              <div className="card-header">
+                <div>
+                  <p className="eyebrow">Content</p>
+                  <h2>{editingId ? "Edit Blog" : "Create Blog"}</h2>
+                  <p className="subhead">Use a clear headline and concise summary.</p>
+                </div>
+              </div>
+              <form className="form" onSubmit={handleSubmit}>
+                <div className="field">
+                  <label>Title</label>
+                  <input
+                    value={form.title}
+                    onChange={(event) =>
+                      setBlogsState((prev) => ({
+                        ...prev,
+                        form: { ...prev.form, title: event.target.value },
+                      }))
+                    }
+                    required
+                  />
+                </div>
+                <div className="field">
+                  <label>Description</label>
+                  <textarea
+                    rows="4"
+                    value={form.description}
+                    onChange={(event) =>
+                      setBlogsState((prev) => ({
+                        ...prev,
+                        form: { ...prev.form, description: event.target.value },
+                      }))
+                    }
+                    required
+                  />
+                </div>
+                <div className="field">
+                  <label>Category</label>
+                <select
+                  value={form.category}
+                  onChange={(event) =>
+                    setBlogsState((prev) => ({
+                      ...prev,
+                      form: { ...prev.form, category: event.target.value },
+                    }))
+                  }
+                >
+                    {CATEGORY_OPTIONS.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Written By</label>
+                  <input
+                    value={form.writtenBy}
+                    onChange={(event) =>
+                      setBlogsState((prev) => ({
+                        ...prev,
+                        form: { ...prev.form, writtenBy: event.target.value },
+                      }))
+                    }
+                    required
+                  />
+                </div>
+                <div className="field">
+                  <label>Quick Clinical Tip</label>
+                  <input
+                    value={form.quickClinicalTip}
+                    onChange={(event) =>
+                      setBlogsState((prev) => ({
+                        ...prev,
+                        form: { ...prev.form, quickClinicalTip: event.target.value },
+                      }))
+                    }
+                    required
+                  />
+                </div>
+                <div className="field">
+                  <label>Metadata (comma separated)</label>
+                  <input
+                    value={form.metadata}
+                    onChange={(event) =>
+                      setBlogsState((prev) => ({
+                        ...prev,
+                        form: { ...prev.form, metadata: event.target.value },
+                      }))
+                    }
+                  />
+                </div>
+                <div className="field">
+                  <label>Cover Image</label>
+                  <input
+                    key={fileKey}
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) =>
+                      setBlogsState((prev) => ({
+                        ...prev,
+                        form: { ...prev.form, image: event.target.files[0] || null },
+                      }))
+                    }
+                    required={!editingId}
+                  />
+                  {editingId && form.image === null && (
+                    <small className="muted">
+                      Current Image:{" "}
+                      {blogs.find((blog) => blog._id === editingId)?.imageUrl || "N/A"}
+                    </small>
+                  )}
+                </div>
+                <div className="form-actions">
+                  <button className="primary" type="submit" disabled={loading}>
+                    {editingId ? "Save changes" : "Create blog"}
+                  </button>
+                  <button className="ghost" type="button" onClick={resetForm} disabled={loading}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
 
-      <div className="card list">
-        <div className="card-header">
-          <h2>Latest posts</h2>
-          <span className="muted">{blogs.length} total</span>
-        </div>
-        <ul>
-          {blogs.map((blog) => (
-            <li key={blog._id} className="list-item">
+          <div className="blog-list">
+            <div className="blog-list-header">
               <div>
-                <h3>{blog.title}</h3>
-                <p className="muted">
-                  {blog.category} - {blog.writtenBy}
-                </p>
-                <p>{blog.description}</p>
-                <p className="meta">Quick tip: {blog.quickClinicalTip}</p>
+                <h2>Blogs</h2>
+                <p className="muted">Total {blogs.length}</p>
               </div>
-              <div className="list-actions">
-                {blog.imageUrl && <img src={blog.imageUrl} alt={blog.title} />}
-              </div>
-            </li>
-          ))}
-          {!blogs.length && <li>No blog entries yet.</li>}
-        </ul>
+              <button className="ghost" type="button" onClick={loadBlogs} disabled={loading}>
+                <span className="button-icon">
+                  <FiRefreshCcw aria-hidden />
+                </span>
+                Refresh
+              </button>
+            </div>
+            {blogs.map((blog) => (
+              <article key={blog._id} className="blog-item">
+                <img src={blog.imageUrl} alt={blog.title} className="blog-cover" />
+                <div className="blog-body">
+                  <div className="blog-title-row">
+                    <h3>{blog.title}</h3>
+                    <span className="blog-tag">{blog.category}</span>
+                  </div>
+                  <p className="muted blog-excerpt">{blog.description}</p>
+                  <div className="blog-meta">
+                    <span>{blog.writtenBy}</span>
+                    <span>
+                      {blog.createdAt
+                        ? new Date(blog.createdAt).toLocaleDateString()
+                        : "No date"}
+                    </span>
+                    <span>{(blog.comments || []).length} comments</span>
+                  </div>
+                  <p className="blog-tip">{blog.quickClinicalTip}</p>
+                </div>
+                <div className="blog-actions">
+                  <button
+                    className="ghost"
+                    type="button"
+                    onClick={() => handleEdit(blog)}
+                    disabled={loading}
+                  >
+                    <span className="button-icon">
+                      <FiEdit2 aria-hidden />
+                    </span>
+                    Edit
+                  </button>
+                  <button
+                    className="danger ghost"
+                    type="button"
+                    onClick={() => handleDelete(blog._id)}
+                    disabled={loading}
+                  >
+                    <span className="button-icon">
+                      <FiTrash2 aria-hidden />
+                    </span>
+                    Delete
+                  </button>
+                </div>
+              </article>
+            ))}
+            {!blogs.length && <p className="muted">No blog entries yet.</p>}
+          </div>
+        </div>
+        <LoadingOverlay active={loading} />
       </div>
     </section>
   );

@@ -1,21 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { toast } from "react-toastify";
+import { FiRefreshCcw } from "react-icons/fi";
 import { newsletterApi } from "../api";
-import LoadingBar from "../components/LoadingBar";
+import LoadingOverlay from "../components/LoadingOverlay";
+import { useAdminState } from "../context/AdminState.jsx";
 
 const NewsletterPage = () => {
-  const [subscriptions, setSubscriptions] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { newsletterState, setNewsletterState } = useAdminState();
+  const { subscriptions, loading } = newsletterState;
+
+  const updateState = (updates) =>
+    setNewsletterState((prev) => ({ ...prev, ...updates }));
 
   const loadSubscriptions = async () => {
-    setLoading(true);
+    updateState({ loading: true });
     try {
       const data = await newsletterApi.list();
-      setSubscriptions(data);
+      updateState({ subscriptions: data });
     } catch (err) {
       toast.error(err.message);
     } finally {
-      setLoading(false);
+      updateState({ loading: false });
     }
   };
 
@@ -32,32 +37,38 @@ const NewsletterPage = () => {
           <p className="subhead">Monitor new newsletter signups.</p>
         </div>
         <button className="ghost" type="button" onClick={loadSubscriptions} disabled={loading}>
+          <span className="button-icon">
+            <FiRefreshCcw aria-hidden />
+          </span>
           Refresh
         </button>
       </div>
 
-      <LoadingBar active={loading} />
-
-      <div className="card list">
-        <div className="card-header">
-          <h2>Subscriptions</h2>
-          <span className="muted">{subscriptions.length} total</span>
+      <div className={loading ? "page-body is-loading" : "page-body"}>
+        <div className="page-content">
+          <div className="card list">
+            <div className="card-header">
+              <h2>Subscriptions</h2>
+              <span className="muted">{subscriptions.length} total</span>
+            </div>
+            <ul>
+              {subscriptions.map((subscription) => (
+                <li key={subscription._id} className="list-item">
+                  <div>
+                    <h3>{subscription.email}</h3>
+                    <p className="muted">
+                      {subscription.createdAt
+                        ? new Date(subscription.createdAt).toLocaleString()
+                        : "Pending timestamp"}
+                    </p>
+                  </div>
+                </li>
+              ))}
+              {!subscriptions.length && <li>No subscribers yet.</li>}
+            </ul>
+          </div>
         </div>
-        <ul>
-          {subscriptions.map((subscription) => (
-            <li key={subscription._id} className="list-item">
-              <div>
-                <h3>{subscription.email}</h3>
-                <p className="muted">
-                  {subscription.createdAt
-                    ? new Date(subscription.createdAt).toLocaleString()
-                    : "Pending timestamp"}
-                </p>
-              </div>
-            </li>
-          ))}
-          {!subscriptions.length && <li>No subscribers yet.</li>}
-        </ul>
+        <LoadingOverlay active={loading} />
       </div>
     </section>
   );

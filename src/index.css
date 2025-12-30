@@ -1,22 +1,65 @@
 @import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@300;400;600;700&display=swap");
 
 :root {
+  --bg: #f4f7fc;
+  --surface: #ffffff;
+  --surface-muted: #f5f7fb;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e5eaf3;
+  --border-strong: #cbd5f5;
+  --nav-hover: #f1f5ff;
+  --nav-active: #e8f0ff;
+  --nav-active-text: #1d4ed8;
+  --nav-icon-bg: #e9f1ff;
+  --chip-bg: #e8f0ff;
+  --accent: #2563eb;
+  --accent-soft: #dbeafe;
+  --danger: #ef4444;
+  --danger-soft: #fecaca;
+  --shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  --overlay: rgba(15, 23, 42, 0.35);
+  --overlay-light: rgba(244, 247, 252, 0.6);
+
   font-family: "Manrope", sans-serif;
   line-height: 1.6;
   font-weight: 400;
-  color: #0f172a;
-  background-color: #f8f4ef;
+  color: var(--text);
+  background-color: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+:root[data-theme="dark"] {
+  --bg: #0f172a;
+  --surface: #111827;
+  --surface-muted: #1f2937;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --border: #1f2937;
+  --border-strong: #374151;
+  --nav-hover: #1f2937;
+  --nav-active: #1e293b;
+  --nav-active-text: #93c5fd;
+  --nav-icon-bg: #1f2937;
+  --chip-bg: #1f2937;
+  --accent: #3b82f6;
+  --accent-soft: #1e3a8a;
+  --danger: #f87171;
+  --danger-soft: #7f1d1d;
+  --shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+  --overlay: rgba(0, 0, 0, 0.45);
+  --overlay-light: rgba(15, 23, 42, 0.6);
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.9), #f8f4ef);
+  background: var(--bg);
+  color: var(--text);
 }
 
 h1,
