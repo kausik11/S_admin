@@ -47,6 +47,19 @@ export const AdminStateProvider = ({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [theme, setTheme] = useState("light");
+  const [authState, setAuthState] = useState(() => {
+    const token = localStorage.getItem("adminToken");
+    const storedUser = localStorage.getItem("adminUser");
+    let user = null;
+    if (storedUser) {
+      try {
+        user = JSON.parse(storedUser);
+      } catch {
+        user = null;
+      }
+    }
+    return { token, user };
+  });
 
   const [servicesState, setServicesState] = useState({
     services: [],
@@ -64,6 +77,10 @@ export const AdminStateProvider = ({ children }) => {
     form: initialCallbackForm,
     fileKey: 0,
     editStates: {},
+    showForm: false,
+    editingId: "",
+    page: 1,
+    pageSize: 3,
     loading: false,
   });
 
@@ -73,6 +90,9 @@ export const AdminStateProvider = ({ children }) => {
     filter: "",
     fileKey: 0,
     showForm: false,
+    editingId: "",
+    page: 1,
+    pageSize: 3,
     loading: false,
   });
 
@@ -84,6 +104,8 @@ export const AdminStateProvider = ({ children }) => {
     fileKey: 0,
     showForm: false,
     editingId: "",
+    page: 1,
+    pageSize: 3,
     loading: false,
   });
 
@@ -93,16 +115,29 @@ export const AdminStateProvider = ({ children }) => {
     showForm: false,
     editingId: "",
     fileKey: 0,
+    page: 1,
+    pageSize: 3,
     loading: false,
   });
 
   const [newsletterState, setNewsletterState] = useState({
     subscriptions: [],
+    form: { email: "" },
+    showForm: false,
+    editingId: "",
+    page: 1,
+    pageSize: 3,
     loading: false,
   });
 
   const [testimonialsState, setTestimonialsState] = useState({
     testimonials: [],
+    form: { fullName: "", rating: "5", message: "", image: null },
+    showForm: false,
+    editingId: "",
+    fileKey: 0,
+    page: 1,
+    pageSize: 3,
     loading: false,
   });
 
@@ -115,6 +150,8 @@ export const AdminStateProvider = ({ children }) => {
         setMobileNavOpen,
         theme,
         setTheme,
+        authState,
+        setAuthState,
         servicesState,
         setServicesState,
         callbacksState,

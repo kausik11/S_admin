@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 import { toast } from "react-toastify";
-import { FiPlus, FiTrash2 } from "react-icons/fi";
+import { FiEdit2, FiPlus, FiTrash2 } from "react-icons/fi";
 import { galleryApi } from "../api";
 import LoadingOverlay from "../components/LoadingOverlay";
+import Modal from "../components/Modal";
 import { initialGalleryForm, useAdminState } from "../context/AdminState.jsx";
 
 const TAG_OPTIONS = [
@@ -16,7 +17,8 @@ const TAG_OPTIONS = [
 
 const GalleryPage = () => {
   const { galleryState, setGalleryState } = useAdminState();
-  const { items, form, filter, fileKey, showForm, loading } = galleryState;
+  const { items, form, filter, fileKey, showForm, editingId, page, pageSize, loading } =
+    galleryState;
 
   const updateState = (updates) =>
     setGalleryState((prev) => ({ ...prev, ...updates }));
@@ -45,6 +47,27 @@ const GalleryPage = () => {
     }
   }, [filter]);
 
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+    if (page > totalPages) {
+      updateState({ page: totalPages });
+    }
+  }, [items.length, page, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+  const startIndex = (page - 1) * pageSize;
+  const paginatedItems = items.slice(startIndex, startIndex + pageSize);
+
+  const resetForm = () => {
+    setGalleryState((prev) => ({
+      ...prev,
+      form: initialGalleryForm,
+      fileKey: prev.fileKey + 1,
+      showForm: false,
+      editingId: "",
+    }));
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     updateState({ loading: true });
@@ -55,14 +78,14 @@ const GalleryPage = () => {
       formData.append("tags", form.tags);
       if (form.image) formData.append("image", form.image);
 
-      await galleryApi.create(formData);
-      setGalleryState((prev) => ({
-        ...prev,
-        form: initialGalleryForm,
-        fileKey: prev.fileKey + 1,
-        showForm: false,
-      }));
-      toast.success("Gallery item created.");
+      if (editingId) {
+        await galleryApi.update(editingId, formData);
+        toast.success("Gallery item updated.");
+      } else {
+        await galleryApi.create(formData);
+        toast.success("Gallery item created.");
+      }
+      resetForm();
       loadGallery(filter || undefined);
     } catch (err) {
       toast.error(err.message);
@@ -85,6 +108,20 @@ const GalleryPage = () => {
     }
   };
 
+  const handleEdit = (item) => {
+    setGalleryState((prev) => ({
+      ...prev,
+      form: {
+        description: item.description || "",
+        tags: Array.isArray(item.tags) ? item.tags.join(", ") : item.tags || "",
+        image: null,
+      },
+      fileKey: prev.fileKey + 1,
+      showForm: true,
+      editingId: item._id,
+    }));
+  };
+
   return (
     <section className="page">
       <div className="page-header">
@@ -102,6 +139,7 @@ const GalleryPage = () => {
               showForm: true,
               form: initialGalleryForm,
               fileKey: prev.fileKey + 1,
+              editingId: "",
             }));
           }}
           disabled={loading}
@@ -115,10 +153,12 @@ const GalleryPage = () => {
 
       <div className={loading ? "page-body is-loading" : "page-body"}>
         <div className="page-content">
-          {showForm && (
-            <div className="card form inline-form">
-              <h2>New gallery entry</h2>
-              <form className="form" onSubmit={handleSubmit}>
+          <Modal
+            open={showForm}
+            title={editingId ? "Edit gallery entry" : "New gallery entry"}
+            onClose={resetForm}
+          >
+            <form className="form" onSubmit={handleSubmit}>
                 <div className="field">
                   <label>Description</label>
                   <input
@@ -158,25 +198,24 @@ const GalleryPage = () => {
                         form: { ...prev.form, image: event.target.files[0] || null },
                       }))
                     }
-                    required
+                    required={!editingId}
                   />
                 </div>
                 <div className="form-actions">
                   <button className="primary" type="submit" disabled={loading}>
-                    Upload image
+                    {editingId ? "Update entry" : "Upload image"}
                   </button>
                   <button
                     className="ghost"
                     type="button"
-                    onClick={() => updateState({ showForm: false })}
+                    onClick={resetForm}
                     disabled={loading}
                   >
                     Cancel
                   </button>
                 </div>
               </form>
-            </div>
-          )}
+          </Modal>
 
           <div className="card list">
             <div className="card-header">
@@ -186,7 +225,9 @@ const GalleryPage = () => {
               </div>
               <select
                 value={filter}
-                onChange={(event) => updateState({ filter: event.target.value })}
+                onChange={(event) =>
+                  updateState({ filter: event.target.value, page: 1 })
+                }
                 disabled={loading}
               >
                 <option value="">All</option>
@@ -198,7 +239,7 @@ const GalleryPage = () => {
               </select>
             </div>
             <div className="gallery-list">
-              {items.map((item) => (
+              {paginatedItems.map((item) => (
                 <article key={item._id} className="gallery-item">
                   <img
                     src={item.imageUrl}
@@ -206,10 +247,27 @@ const GalleryPage = () => {
                     className="gallery-cover"
                   />
                   <div className="gallery-body">
-                    <p>{item.description}</p>
-                    <small className="muted">{item.tags.join(", ")}</small>
+                    <p>
+                      <span className="muted">Description: </span>
+                      {item.description}
+                    </p>
+                    <small className="muted">
+                      <span className="muted">Tags: </span>
+                      {item.tags.join(", ")}
+                    </small>
                   </div>
                   <div className="gallery-actions">
+                    <button
+                      className="ghost"
+                      type="button"
+                      onClick={() => handleEdit(item)}
+                      disabled={loading}
+                    >
+                      <span className="button-icon">
+                        <FiEdit2 aria-hidden />
+                      </span>
+                      Edit
+                    </button>
                     <button
                       className="danger ghost"
                       type="button"
@@ -226,6 +284,31 @@ const GalleryPage = () => {
               ))}
               {!items.length && <p className="muted">No gallery items yet.</p>}
             </div>
+            {items.length > pageSize && (
+              <div className="pagination">
+                <span className="muted">
+                  Page {page} of {totalPages}
+                </span>
+                <div className="pagination-actions">
+                  <button
+                    className="ghost"
+                    type="button"
+                    onClick={() => updateState({ page: Math.max(1, page - 1) })}
+                    disabled={loading || page === 1}
+                  >
+                    Prev
+                  </button>
+                  <button
+                    className="ghost"
+                    type="button"
+                    onClick={() => updateState({ page: Math.min(totalPages, page + 1) })}
+                    disabled={loading || page === totalPages}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <LoadingOverlay active={loading} />

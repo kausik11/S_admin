@@ -1,6 +1,6 @@
-import { FiBell, FiMenu, FiMoon, FiSearch, FiSun } from "react-icons/fi";
+import { FiBell, FiLogOut, FiMenu, FiMoon, FiSearch, FiSun } from "react-icons/fi";
 
-const Topbar = ({ onMenuClick, onThemeToggle, theme }) => (
+const Topbar = ({ onMenuClick, onThemeToggle, theme, user, onLogout }) => (
   <header className="topbar">
     <button className="icon-button menu-button" type="button" onClick={onMenuClick}>
       <FiMenu aria-hidden />
@@ -17,12 +17,17 @@ const Topbar = ({ onMenuClick, onThemeToggle, theme }) => (
         <FiBell aria-hidden />
       </button>
       <div className="user-chip">
-        <span className="user-avatar">K</span>
+        <span className="user-avatar">
+          {(user?.firstName || "A").slice(0, 1).toUpperCase()}
+        </span>
         <div>
-          <p>kausik saha</p>
-          <small>admin</small>
+          <p>{user ? `${user.firstName} ${user.lastName}` : "Admin"}</p>
+          <small>{user?.role || "admin"}</small>
         </div>
       </div>
+      <button className="icon-button" type="button" aria-label="Logout" onClick={onLogout}>
+        <FiLogOut aria-hidden />
+      </button>
     </div>
   </header>
 );

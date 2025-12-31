@@ -1,15 +1,19 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FiEdit2, FiPlus, FiRefreshCcw, FiTrash2 } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { blogApi } from "../api";
 import LoadingOverlay from "../components/LoadingOverlay";
+import Modal from "../components/Modal";
 import { initialBlogForm, useAdminState } from "../context/AdminState.jsx";
 
 const CATEGORY_OPTIONS = ["cancer", "kidney", "heart", "nerve", "spinal", "other"];
 
 const BlogsPage = () => {
   const { blogsState, setBlogsState } = useAdminState();
-  const { blogs, form, showForm, editingId, fileKey, loading } = blogsState;
+  const { blogs, form, showForm, editingId, fileKey, page, pageSize, loading } =
+    blogsState;
+  const [searchTitle, setSearchTitle] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
 
   const updateState = (updates) => setBlogsState((prev) => ({ ...prev, ...updates }));
 
@@ -28,6 +32,28 @@ const BlogsPage = () => {
   useEffect(() => {
     loadBlogs();
   }, []);
+
+  const filteredBlogs = useMemo(() => {
+    const normalizedSearch = searchTitle.trim().toLowerCase();
+    return blogs.filter((blog) => {
+      const matchesTitle = normalizedSearch
+        ? (blog.title || "").toLowerCase().includes(normalizedSearch)
+        : true;
+      const matchesCategory = categoryFilter ? blog.category === categoryFilter : true;
+      return matchesTitle && matchesCategory;
+    });
+  }, [blogs, searchTitle, categoryFilter]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredBlogs.length / pageSize));
+    if (page > totalPages) {
+      updateState({ page: totalPages });
+    }
+  }, [filteredBlogs.length, page, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredBlogs.length / pageSize));
+  const startIndex = (page - 1) * pageSize;
+  const paginatedBlogs = filteredBlogs.slice(startIndex, startIndex + pageSize);
 
   const resetForm = () => {
     setBlogsState((prev) => ({
@@ -133,16 +159,13 @@ const BlogsPage = () => {
 
       <div className={loading ? "page-body is-loading" : "page-body"}>
         <div className="page-content">
-          {showForm && (
-            <div className="card form blog-form">
-              <div className="card-header">
-                <div>
-                  <p className="eyebrow">Content</p>
-                  <h2>{editingId ? "Edit Blog" : "Create Blog"}</h2>
-                  <p className="subhead">Use a clear headline and concise summary.</p>
-                </div>
-              </div>
-              <form className="form" onSubmit={handleSubmit}>
+          <Modal
+            open={showForm}
+            title={editingId ? "Edit Blog" : "Create Blog"}
+            onClose={resetForm}
+          >
+            <p className="subhead">Use a clear headline and concise summary.</p>
+            <form className="form" onSubmit={handleSubmit}>
                 <div className="field">
                   <label>Title</label>
                   <input
@@ -256,41 +279,82 @@ const BlogsPage = () => {
                   </button>
                 </div>
               </form>
-            </div>
-          )}
+          </Modal>
 
           <div className="blog-list">
             <div className="blog-list-header">
               <div>
                 <h2>Blogs</h2>
-                <p className="muted">Total {blogs.length}</p>
+                <p className="muted">Total {filteredBlogs.length}</p>
               </div>
-              <button className="ghost" type="button" onClick={loadBlogs} disabled={loading}>
-                <span className="button-icon">
-                  <FiRefreshCcw aria-hidden />
-                </span>
-                Refresh
-              </button>
+              <div className="filters">
+                <input
+                  value={searchTitle}
+                  onChange={(event) => {
+                    setSearchTitle(event.target.value);
+                    updateState({ page: 1 });
+                  }}
+                  placeholder="Search by title..."
+                  disabled={loading}
+                />
+                <select
+                  value={categoryFilter}
+                  onChange={(event) => {
+                    setCategoryFilter(event.target.value);
+                    updateState({ page: 1 });
+                  }}
+                  disabled={loading}
+                >
+                  <option value="">All categories</option>
+                  {CATEGORY_OPTIONS.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+                <button className="ghost" type="button" onClick={loadBlogs} disabled={loading}>
+                  <span className="button-icon">
+                    <FiRefreshCcw aria-hidden />
+                  </span>
+                  Refresh
+                </button>
+              </div>
             </div>
-            {blogs.map((blog) => (
+            {paginatedBlogs.map((blog) => (
               <article key={blog._id} className="blog-item">
                 <img src={blog.imageUrl} alt={blog.title} className="blog-cover" />
                 <div className="blog-body">
                   <div className="blog-title-row">
-                    <h3>{blog.title}</h3>
+                    <h3>
+                      <span className="muted">Title: </span>
+                      {blog.title}
+                    </h3>
                     <span className="blog-tag">{blog.category}</span>
                   </div>
-                  <p className="muted blog-excerpt">{blog.description}</p>
+                  <p className="muted blog-excerpt">
+                    <span className="muted">Description: </span>
+                    {blog.description}
+                  </p>
                   <div className="blog-meta">
-                    <span>{blog.writtenBy}</span>
                     <span>
+                      <span className="muted">Author: </span>
+                      {blog.writtenBy}
+                    </span>
+                    <span>
+                      <span className="muted">Date: </span>
                       {blog.createdAt
                         ? new Date(blog.createdAt).toLocaleDateString()
                         : "No date"}
                     </span>
-                    <span>{(blog.comments || []).length} comments</span>
+                    <span>
+                      <span className="muted">Comments: </span>
+                      {(blog.comments || []).length}
+                    </span>
                   </div>
-                  <p className="blog-tip">{blog.quickClinicalTip}</p>
+                  <p className="blog-tip">
+                    <span className="muted">Tip: </span>
+                    {blog.quickClinicalTip}
+                  </p>
                 </div>
                 <div className="blog-actions">
                   <button
@@ -318,8 +382,33 @@ const BlogsPage = () => {
                 </div>
               </article>
             ))}
-            {!blogs.length && <p className="muted">No blog entries yet.</p>}
+            {!filteredBlogs.length && <p className="muted">No blog entries yet.</p>}
           </div>
+          {filteredBlogs.length > pageSize && (
+            <div className="pagination">
+              <span className="muted">
+                Page {page} of {totalPages}
+              </span>
+              <div className="pagination-actions">
+                <button
+                  className="ghost"
+                  type="button"
+                  onClick={() => updateState({ page: Math.max(1, page - 1) })}
+                  disabled={loading || page === 1}
+                >
+                  Prev
+                </button>
+                <button
+                  className="ghost"
+                  type="button"
+                  onClick={() => updateState({ page: Math.min(totalPages, page + 1) })}
+                  disabled={loading || page === totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         <LoadingOverlay active={loading} />
       </div>

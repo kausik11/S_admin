@@ -13,11 +13,16 @@ import GalleryPage from "./pages/GalleryPage";
 import NewsletterPage from "./pages/NewsletterPage";
 import ServicesPage from "./pages/ServicesPage";
 import TestimonialsPage from "./pages/TestimonialsPage";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import { authApi } from "./api";
+import UsersPage from "./pages/UsersPage";
 import {
   FiBookOpen,
   FiGrid,
   FiHelpCircle,
   FiImage,
+  FiUsers,
   FiMail,
   FiMessageCircle,
   FiPhoneCall,
@@ -33,12 +38,26 @@ const App = () => {
     setMobileNavOpen,
     theme,
     setTheme,
+    authState,
+    setAuthState,
   } =
     useAdminState();
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // Ignore logout errors to ensure local sign-out happens.
+    } finally {
+      localStorage.removeItem("adminToken");
+      localStorage.removeItem("adminUser");
+      setAuthState({ token: null, user: null });
+    }
+  };
 
   const routes = useMemo(
     () => [
@@ -62,6 +81,13 @@ const App = () => {
         path: "/services",
         icon: FiTool,
         component: ServicesPage,
+      },
+      {
+        id: "users",
+        label: "Users",
+        path: "/users",
+        icon: FiUsers,
+        component: UsersPage,
       },
       {
         id: "gallery",
@@ -101,6 +127,24 @@ const App = () => {
     ],
     []
   );
+  const adminRoles = ["admin", "superadmin", "administrator"];
+  const isAdmin = adminRoles.includes(authState?.user?.role);
+  const visibleRoutes = isAdmin
+    ? routes
+    : routes.filter((route) => route.id !== "users");
+
+  if (!authState?.token) {
+    return (
+      <>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+        <ToastContainer position="top-right" autoClose={3000} />
+      </>
+    );
+  }
 
   return (
     <div
@@ -126,11 +170,15 @@ const App = () => {
           onThemeToggle={() =>
             setTheme((prev) => (prev === "light" ? "dark" : "light"))
           }
+          user={authState?.user}
+          onLogout={handleLogout}
         />
         <div className="content-inner">
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            {routes.map((route) => (
+            <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/register" element={<Navigate to="/dashboard" replace />} />
+            {visibleRoutes.map((route) => (
               <Route key={route.id} path={route.path} element={<route.component />} />
             ))}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

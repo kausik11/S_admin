@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import { FiEdit2, FiPlus, FiRefreshCcw, FiTrash2 } from "react-icons/fi";
 import { servicesApi } from "../api";
 import LoadingOverlay from "../components/LoadingOverlay";
+import Modal from "../components/Modal";
 import { initialServiceForm, useAdminState } from "../context/AdminState.jsx";
 
 const ServicesPage = () => {
@@ -158,8 +159,12 @@ const ServicesPage = () => {
                 </button>
               </div>
 
-              {showForm && (
-                <form className="form inline-form" onSubmit={handleSubmit}>
+              <Modal
+                open={showForm}
+                title={editingId ? "Edit service" : "New service"}
+                onClose={resetForm}
+              >
+                <form className="form" onSubmit={handleSubmit}>
                   <div className="field">
                     <label>Title</label>
                     <input
@@ -219,7 +224,7 @@ const ServicesPage = () => {
                     </button>
                   </div>
                 </form>
-              )}
+              </Modal>
             </div>
 
             <div className="card list">
@@ -239,8 +244,14 @@ const ServicesPage = () => {
                       <img src={service.imageUrl} alt={service.title} className="service-cover" />
                     )}
                     <div className="service-body">
-                      <h3>{service.title}</h3>
-                      <p className="muted">{service.description}</p>
+                      <h3>
+                        <span className="muted">Title: </span>
+                        {service.title}
+                      </h3>
+                      <p className="muted">
+                        <span className="muted">Description: </span>
+                        {service.description}
+                      </p>
                     </div>
                     <div className="service-actions">
                       <button

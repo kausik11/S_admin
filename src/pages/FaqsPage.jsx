@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { toast } from "react-toastify";
 import { FiEdit2, FiPlus, FiTrash2 } from "react-icons/fi";
 import { faqsApi } from "../api";
 import LoadingOverlay from "../components/LoadingOverlay";
+import Modal from "../components/Modal";
 import { initialFaqForm, useAdminState } from "../context/AdminState.jsx";
 
 const TAG_OPTIONS = [
@@ -16,8 +17,18 @@ const TAG_OPTIONS = [
 
 const FaqsPage = () => {
   const { faqsState, setFaqsState } = useAdminState();
-  const { faqs, form, search, tagFilter, fileKey, showForm, editingId, loading } =
-    faqsState;
+  const {
+    faqs,
+    form,
+    search,
+    tagFilter,
+    fileKey,
+    showForm,
+    editingId,
+    page,
+    pageSize,
+    loading,
+  } = faqsState;
 
   const updateState = (updates) => setFaqsState((prev) => ({ ...prev, ...updates }));
 
@@ -40,6 +51,25 @@ const FaqsPage = () => {
   useEffect(() => {
     loadFaqs();
   }, [tagFilter]);
+
+  const filteredFaqs = useMemo(() => {
+    const normalized = search.trim().toLowerCase();
+    if (!normalized) return faqs;
+    return faqs.filter((faq) =>
+      (faq.question || "").toLowerCase().includes(normalized)
+    );
+  }, [faqs, search]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredFaqs.length / pageSize));
+    if (page > totalPages) {
+      updateState({ page: totalPages });
+    }
+  }, [filteredFaqs.length, page, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredFaqs.length / pageSize));
+  const startIndex = (page - 1) * pageSize;
+  const paginatedFaqs = filteredFaqs.slice(startIndex, startIndex + pageSize);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -90,23 +120,9 @@ const FaqsPage = () => {
     }
   };
 
-  const handleSearch = async (event) => {
+  const handleSearch = (event) => {
     event.preventDefault();
-    updateState({ loading: true });
-
-    if (!search.trim()) {
-      loadFaqs();
-      return;
-    }
-
-    try {
-      const data = await faqsApi.search(search.trim());
-      updateState({ faqs: data });
-    } catch (err) {
-      toast.error(err.message);
-    } finally {
-      updateState({ loading: false });
-    }
+    updateState({ page: 1 });
   };
 
   const handleEdit = (faq) => {
@@ -160,10 +176,20 @@ const FaqsPage = () => {
 
       <div className={loading ? "page-body is-loading" : "page-body"}>
         <div className="page-content">
-          {showForm && (
-            <div className="card form inline-form">
-              <h2>{editingId ? "Edit FAQ" : "Create FAQ"}</h2>
-              <form className="form" onSubmit={handleSubmit}>
+          <Modal
+            open={showForm}
+            title={editingId ? "Edit FAQ" : "Create FAQ"}
+            onClose={() =>
+              setFaqsState((prev) => ({
+                ...prev,
+                showForm: false,
+                editingId: "",
+                form: initialFaqForm,
+                fileKey: prev.fileKey + 1,
+              }))
+            }
+          >
+            <form className="form" onSubmit={handleSubmit}>
                 <div className="field">
                   <label>Title</label>
                   <input
@@ -278,8 +304,7 @@ const FaqsPage = () => {
                   </button>
                 </div>
               </form>
-            </div>
-          )}
+          </Modal>
 
           <div className="card list">
             <div className="card-header">
@@ -291,14 +316,18 @@ const FaqsPage = () => {
                 <form onSubmit={handleSearch}>
                   <input
                     value={search}
-                    onChange={(event) => updateState({ search: event.target.value })}
+                    onChange={(event) =>
+                      updateState({ search: event.target.value, page: 1 })
+                    }
                     placeholder="Search FAQs..."
                     disabled={loading}
                   />
                 </form>
                 <select
                   value={tagFilter}
-                  onChange={(event) => updateState({ tagFilter: event.target.value })}
+                  onChange={(event) =>
+                    updateState({ tagFilter: event.target.value, page: 1 })
+                  }
                   disabled={loading}
                 >
                   <option value="">All tags</option>
@@ -311,14 +340,26 @@ const FaqsPage = () => {
               </div>
             </div>
             <div className="faq-list">
-              {faqs.map((faq) => (
+              {paginatedFaqs.map((faq) => (
                 <article key={faq._id} className="faq-item">
                   {faq.imageUrl && (
                     <img src={faq.imageUrl} alt={faq.title} className="faq-cover" />
                   )}
                   <div className="faq-body">
-                    <h3>{faq.title}</h3>
-                    <p className="muted">{faq.question}</p>
+                    <h3>
+                      <span className="muted">Title: </span>
+                      {faq.title}
+                    </h3>
+                    <p className="muted">
+                      <span className="muted">Question: </span>
+                      {faq.question}
+                    </p>
+                    {faq.tags?.length > 0 && (
+                      <p className="meta">
+                        <span className="muted">Tags: </span>
+                        {faq.tags.join(", ")}
+                      </p>
+                    )}
                   </div>
                   <div className="faq-actions">
                     <button
@@ -346,8 +387,33 @@ const FaqsPage = () => {
                   </div>
                 </article>
               ))}
-              {!faqs.length && <p className="muted">No FAQs yet.</p>}
+              {!filteredFaqs.length && <p className="muted">No FAQs yet.</p>}
             </div>
+            {filteredFaqs.length > pageSize && (
+              <div className="pagination">
+                <span className="muted">
+                  Page {page} of {totalPages}
+                </span>
+                <div className="pagination-actions">
+                  <button
+                    className="ghost"
+                    type="button"
+                    onClick={() => updateState({ page: Math.max(1, page - 1) })}
+                    disabled={loading || page === 1}
+                  >
+                    Prev
+                  </button>
+                  <button
+                    className="ghost"
+                    type="button"
+                    onClick={() => updateState({ page: Math.min(totalPages, page + 1) })}
+                    disabled={loading || page === totalPages}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <LoadingOverlay active={loading} />
