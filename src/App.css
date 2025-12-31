@@ -361,6 +361,7 @@
   border-radius: 12px;
   font-weight: 600;
   cursor: pointer;
+  margin-top: 10px;
 }
 
 .ghost {

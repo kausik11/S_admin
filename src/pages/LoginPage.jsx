@@ -71,9 +71,9 @@ const LoginPage = () => {
             {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
-        <p className="auth-footer">
+        {/* <p className="auth-footer">
           Need an account? <Link to="/register">Create one</Link>
-        </p>
+        </p> */}
       </div>
     </div>
   );
