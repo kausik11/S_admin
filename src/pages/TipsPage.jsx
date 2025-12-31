@@ -5,10 +5,24 @@ import { tipsApi } from "../api";
 import LoadingOverlay from "../components/LoadingOverlay";
 import Modal from "../components/Modal";
 import { initialTipForm, useAdminState } from "../context/AdminState.jsx";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
+
+const stripHtml = (value) =>
+  value ? value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : "";
 
 const TipsPage = () => {
   const { tipsState, setTipsState } = useAdminState();
-  const { tips, form, editingId, showForm, loading, page, pageSize } = tipsState;
+  const {
+    tips,
+    form,
+    editingId,
+    showForm,
+    fileKey,
+    loading,
+    page,
+    pageSize,
+  } = tipsState;
 
   const updateState = (updates) =>
     setTipsState((prev) => ({ ...prev, ...updates }));
@@ -46,6 +60,7 @@ const TipsPage = () => {
       form: initialTipForm,
       editingId: "",
       showForm: false,
+      fileKey: prev.fileKey + 1,
     }));
   };
 
@@ -54,17 +69,16 @@ const TipsPage = () => {
     updateState({ loading: true });
 
     try {
-      const payload = {
-        title: form.title,
-        text: form.text,
-        imageUrl: form.imageUrl,
-      };
+      const formData = new FormData();
+      formData.append("title", form.title);
+      formData.append("text", form.text);
+      if (form.image) formData.append("image", form.image);
 
       if (editingId) {
-        await tipsApi.update(editingId, payload);
+        await tipsApi.update(editingId, formData);
         toast.success("Tip updated.");
       } else {
-        await tipsApi.create(payload);
+        await tipsApi.create(formData);
         toast.success("Tip created.");
       }
 
@@ -97,9 +111,10 @@ const TipsPage = () => {
       form: {
         title: tip.title || "",
         text: tip.text || "",
-        imageUrl: tip.imageUrl || "",
+        image: null,
       },
       editingId: tip._id,
+      fileKey: prev.fileKey + 1,
     }));
   };
 
@@ -137,6 +152,7 @@ const TipsPage = () => {
                       showForm: true,
                       editingId: "",
                       form: initialTipForm,
+                      fileKey: prev.fileKey + 1,
                     }));
                   }}
                   disabled={loading}
@@ -169,29 +185,29 @@ const TipsPage = () => {
                   </div>
                   <div className="field">
                     <label>Text</label>
-                    <textarea
-                      rows="4"
+                    <ReactQuill
                       value={form.text}
-                      onChange={(event) =>
+                      onChange={(value) =>
                         setTipsState((prev) => ({
                           ...prev,
-                          form: { ...prev.form, text: event.target.value },
+                          form: { ...prev.form, text: value },
                         }))
                       }
-                      required
                     />
                   </div>
                   <div className="field">
-                    <label>Image URL</label>
+                    <label>Image</label>
                     <input
-                      value={form.imageUrl}
+                      key={fileKey}
+                      type="file"
+                      accept="image/*"
                       onChange={(event) =>
                         setTipsState((prev) => ({
                           ...prev,
-                          form: { ...prev.form, imageUrl: event.target.value },
+                          form: { ...prev.form, image: event.target.files[0] || null },
                         }))
                       }
-                      placeholder="https://..."
+                      required={!editingId}
                     />
                   </div>
                   <div className="form-actions">
@@ -237,7 +253,7 @@ const TipsPage = () => {
                       </h3>
                       <p className="muted">
                         <span className="muted">Text: </span>
-                        {tip.text}
+                        {stripHtml(tip.text)}
                       </p>
                     </div>
                     <div className="service-actions">

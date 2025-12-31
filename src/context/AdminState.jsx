@@ -44,7 +44,7 @@ export const initialBlogForm = {
 export const initialTipForm = {
   title: "",
   text: "",
-  imageUrl: "",
+  image: null,
 };
 
 const AdminStateContext = createContext(null);
@@ -152,6 +152,7 @@ export const AdminStateProvider = ({ children }) => {
     form: initialTipForm,
     showForm: false,
     editingId: "",
+    fileKey: 0,
     page: 1,
     pageSize: 3,
     loading: false,

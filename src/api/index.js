@@ -108,8 +108,12 @@ export const newsletterApi = {
 
 export const tipsApi = {
   list: () => api.get("/api/tips").then((res) => res.data),
-  create: (body) => api.post("/api/tips", body).then((res) => res.data),
-  update: (id, body) => api.put(`/api/tips/${id}`, body).then((res) => res.data),
+  create: (formData) =>
+    api.post("/api/tips", formData, formConfig).then((res) => res.data),
+  update: (id, body) => {
+    const config = body instanceof FormData ? formConfig : undefined;
+    return api.put(`/api/tips/${id}`, body, config).then((res) => res.data);
+  },
   remove: (id) => api.delete(`/api/tips/${id}`).then((res) => res.data),
 };
 
