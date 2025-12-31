@@ -106,6 +106,13 @@ export const newsletterApi = {
   remove: (id) => api.delete(`/api/newsletter/${id}`).then((res) => res.data),
 };
 
+export const tipsApi = {
+  list: () => api.get("/api/tips").then((res) => res.data),
+  create: (body) => api.post("/api/tips", body).then((res) => res.data),
+  update: (id, body) => api.put(`/api/tips/${id}`, body).then((res) => res.data),
+  remove: (id) => api.delete(`/api/tips/${id}`).then((res) => res.data),
+};
+
 export const authApi = {
   register: (body) => api.post("/api/auth/register", body).then((res) => res.data),
   login: (body) => api.post("/api/auth/login", body).then((res) => res.data),

@@ -15,10 +15,12 @@ import ServicesPage from "./pages/ServicesPage";
 import TestimonialsPage from "./pages/TestimonialsPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import TipsPage from "./pages/TipsPage";
 import { authApi } from "./api";
 import UsersPage from "./pages/UsersPage";
 import {
   FiBookOpen,
+  FiClipboard,
   FiGrid,
   FiHelpCircle,
   FiImage,
@@ -81,6 +83,13 @@ const App = () => {
         path: "/services",
         icon: FiTool,
         component: ServicesPage,
+      },
+      {
+        id: "tips",
+        label: "Tips",
+        path: "/tips",
+        icon: FiClipboard,
+        component: TipsPage,
       },
       {
         id: "users",

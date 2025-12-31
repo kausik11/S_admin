@@ -41,6 +41,12 @@ export const initialBlogForm = {
   image: null,
 };
 
+export const initialTipForm = {
+  title: "",
+  text: "",
+  imageUrl: "",
+};
+
 const AdminStateContext = createContext(null);
 
 export const AdminStateProvider = ({ children }) => {
@@ -141,6 +147,16 @@ export const AdminStateProvider = ({ children }) => {
     loading: false,
   });
 
+  const [tipsState, setTipsState] = useState({
+    tips: [],
+    form: initialTipForm,
+    showForm: false,
+    editingId: "",
+    page: 1,
+    pageSize: 3,
+    loading: false,
+  });
+
   return (
     <AdminStateContext.Provider
       value={{
@@ -166,6 +182,8 @@ export const AdminStateProvider = ({ children }) => {
         setNewsletterState,
         testimonialsState,
         setTestimonialsState,
+        tipsState,
+        setTipsState,
       }}
     >
       {children}
