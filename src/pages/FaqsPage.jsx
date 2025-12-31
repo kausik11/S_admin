@@ -5,6 +5,8 @@ import { faqsApi } from "../api";
 import LoadingOverlay from "../components/LoadingOverlay";
 import Modal from "../components/Modal";
 import { initialFaqForm, useAdminState } from "../context/AdminState.jsx";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 const TAG_OPTIONS = [
   "clicnic",
@@ -205,30 +207,26 @@ const FaqsPage = () => {
                 </div>
                 <div className="field">
                   <label>Question</label>
-                  <textarea
-                    rows="2"
+                  <ReactQuill
                     value={form.question}
-                    onChange={(event) =>
+                    onChange={(value) =>
                       setFaqsState((prev) => ({
                         ...prev,
-                        form: { ...prev.form, question: event.target.value },
+                        form: { ...prev.form, question: value },
                       }))
                     }
-                    required
                   />
                 </div>
                 <div className="field">
                   <label>Answer</label>
-                  <textarea
-                    rows="4"
+                  <ReactQuill
                     value={form.answer}
-                    onChange={(event) =>
+                    onChange={(value) =>
                       setFaqsState((prev) => ({
                         ...prev,
-                        form: { ...prev.form, answer: event.target.value },
+                        form: { ...prev.form, answer: value },
                       }))
                     }
-                    required
                   />
                 </div>
                 <div className="field">

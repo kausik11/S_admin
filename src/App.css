@@ -243,6 +243,12 @@
   font-weight: 700;
 }
 
+.quill{
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
 .page {
   display: grid;
   gap: 20px;
@@ -1085,6 +1091,31 @@
 .modal-body {
   display: grid;
   gap: 16px;
+}
+
+.ql-toolbar.ql-snow,
+.ql-container.ql-snow {
+  border-color: var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.ql-container.ql-snow {
+  min-height: 160px;
+}
+
+.ql-editor {
+  margin-bottom: 12px;
+}
+
+.ql-toolbar.ql-snow {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.ql-container.ql-snow {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 
 @keyframes fadeIn {

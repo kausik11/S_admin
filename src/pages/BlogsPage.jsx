@@ -5,6 +5,8 @@ import { blogApi } from "../api";
 import LoadingOverlay from "../components/LoadingOverlay";
 import Modal from "../components/Modal";
 import { initialBlogForm, useAdminState } from "../context/AdminState.jsx";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 const CATEGORY_OPTIONS = ["cancer", "kidney", "heart", "nerve", "spinal", "other"];
 
@@ -65,11 +67,20 @@ const BlogsPage = () => {
     }));
   };
 
+  const stripHtml = (value) =>
+    value ? value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : "";
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     updateState({ loading: true });
 
     try {
+      if (!stripHtml(form.description)) {
+        toast.error("Description is required.");
+        updateState({ loading: false });
+        return;
+      }
+
       const formData = new FormData();
       formData.append("title", form.title);
       formData.append("description", form.description);
@@ -181,15 +192,15 @@ const BlogsPage = () => {
                 </div>
                 <div className="field">
                   <label>Description</label>
-                  <textarea
-                    rows="4"
+                  <ReactQuill
                     value={form.description}
-                    onChange={(event) =>
+                    onChange={(value) =>
                       setBlogsState((prev) => ({
                         ...prev,
-                        form: { ...prev.form, description: event.target.value },
+                        form: { ...prev.form, description: value },
                       }))
                     }
+                    className="quill"
                     required
                   />
                 </div>
@@ -333,7 +344,7 @@ const BlogsPage = () => {
                   </div>
                   <p className="muted blog-excerpt">
                     <span className="muted">Description: </span>
-                    {blog.description}
+                    {stripHtml(blog.description)}
                   </p>
                   <div className="blog-meta">
                     <span>
