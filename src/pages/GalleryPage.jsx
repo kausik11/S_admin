@@ -7,7 +7,7 @@ import Modal from "../components/Modal";
 import { initialGalleryForm, useAdminState } from "../context/AdminState.jsx";
 
 const TAG_OPTIONS = [
-  "clicnic",
+  "clinic",
   "care",
   "kids",
   "events",
@@ -113,7 +113,7 @@ const GalleryPage = () => {
       ...prev,
       form: {
         description: item.description || "",
-        tags: Array.isArray(item.tags) ? item.tags.join(", ") : item.tags || "",
+        tags: Array.isArray(item.tags) ? item.tags[0] || "" : item.tags || "",
         image: null,
       },
       fileKey: prev.fileKey + 1,
@@ -173,8 +173,8 @@ const GalleryPage = () => {
                   />
                 </div>
                 <div className="field">
-                  <label>Tags (comma separated)</label>
-                  <input
+                  <label>Tag</label>
+                  <select
                     value={form.tags}
                     onChange={(event) =>
                       setGalleryState((prev) => ({
@@ -182,9 +182,17 @@ const GalleryPage = () => {
                         form: { ...prev.form, tags: event.target.value },
                       }))
                     }
-                    placeholder={TAG_OPTIONS.join(", ")}
                     required
-                  />
+                  >
+                    <option value="" disabled>
+                      Select a tag
+                    </option>
+                    {TAG_OPTIONS.map((tag) => (
+                      <option key={tag} value={tag}>
+                        {tag}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="field">
                   <label>Image</label>
