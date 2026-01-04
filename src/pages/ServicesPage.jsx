@@ -7,7 +7,7 @@ import Modal from "../components/Modal";
 import { initialServiceForm, useAdminState } from "../context/AdminState.jsx";
 
 const ServicesPage = () => {
-  const { servicesState, setServicesState } = useAdminState();
+  const { servicesState, setServicesState, authState } = useAdminState();
   const {
     services,
     form,
@@ -18,6 +18,8 @@ const ServicesPage = () => {
     page,
     pageSize,
   } = servicesState;
+  const adminRoles = ["admin", "superadmin"];
+  const isAdmin = adminRoles.includes(authState?.user?.role);
 
   const updateState = (updates) =>
     setServicesState((prev) => ({ ...prev, ...updates }));
@@ -87,6 +89,10 @@ const ServicesPage = () => {
   };
 
   const handleDelete = async (id) => {
+    if (!isAdmin) {
+      toast.error("Only admins can delete services.");
+      return;
+    }
     updateState({ loading: true });
 
     try {
@@ -268,17 +274,19 @@ const ServicesPage = () => {
                         </span>
                         Edit
                       </button>
-                      <button
-                        className="danger ghost"
-                        type="button"
-                        onClick={() => handleDelete(service._id)}
-                        disabled={loading}
-                      >
-                        <span className="button-icon">
-                          <FiTrash2 aria-hidden />
-                        </span>
-                        Delete
-                      </button>
+                      {isAdmin && (
+                        <button
+                          className="danger ghost"
+                          type="button"
+                          onClick={() => handleDelete(service._id)}
+                          disabled={loading}
+                        >
+                          <span className="button-icon">
+                            <FiTrash2 aria-hidden />
+                          </span>
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </article>
                 ))}

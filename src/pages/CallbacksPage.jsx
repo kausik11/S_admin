@@ -4,6 +4,7 @@ import {
   FiCheckCircle,
   FiDownload,
   FiEdit2,
+  FiEye,
   FiPlus,
   FiRefreshCcw,
   FiTrash2,
@@ -15,7 +16,15 @@ import { initialCallbackForm, useAdminState } from "../context/AdminState.jsx";
 
 const LOCATION_OPTIONS = ["kolkata", "howrah", "bardhaman"];
 
-const CallbackItem = ({ callback, onUpdate, onEdit, onDelete, disabled }) => {
+const CallbackItem = ({
+  callback,
+  onUpdate,
+  onEdit,
+  onDelete,
+  onPreview,
+  disabled,
+  isAdmin,
+}) => {
   const { callbacksState, setCallbacksState } = useAdminState();
   const current = callbacksState.editStates[callback._id] || {
     status: callback.status,
@@ -45,6 +54,11 @@ const CallbackItem = ({ callback, onUpdate, onEdit, onDelete, disabled }) => {
         <p className="meta">
           {callback.location} - {callback.status}
         </p>
+        {callback.createdAt && (
+          <p className="muted">
+            {new Date(callback.createdAt).toLocaleString()}
+          </p>
+        )}
         {callback.description && <p>{callback.description}</p>}
       </div>
       <div className="callback-actions">
@@ -83,6 +97,17 @@ const CallbackItem = ({ callback, onUpdate, onEdit, onDelete, disabled }) => {
           <button
             className="ghost"
             type="button"
+            onClick={() => onPreview(callback)}
+            disabled={disabled}
+          >
+            <span className="button-icon">
+              <FiEye aria-hidden />
+            </span>
+            Preview
+          </button>
+          <button
+            className="ghost"
+            type="button"
             onClick={() => onEdit(callback)}
             disabled={disabled}
           >
@@ -91,17 +116,19 @@ const CallbackItem = ({ callback, onUpdate, onEdit, onDelete, disabled }) => {
             </span>
             Edit
           </button>
-          <button
-            className="danger ghost"
-            type="button"
-            onClick={() => onDelete(callback._id)}
-            disabled={disabled}
-          >
-            <span className="button-icon">
-              <FiTrash2 aria-hidden />
-            </span>
-            Delete
-          </button>
+          {isAdmin && (
+            <button
+              className="danger ghost"
+              type="button"
+              onClick={() => onDelete(callback._id)}
+              disabled={disabled}
+            >
+              <span className="button-icon">
+                <FiTrash2 aria-hidden />
+              </span>
+              Delete
+            </button>
+          )}
         </div>
       </div>
     </article>
@@ -109,7 +136,7 @@ const CallbackItem = ({ callback, onUpdate, onEdit, onDelete, disabled }) => {
 };
 
 const CallbacksPage = () => {
-  const { callbacksState, setCallbacksState } = useAdminState();
+  const { callbacksState, setCallbacksState, authState } = useAdminState();
   const {
     callbacks,
     form,
@@ -123,6 +150,9 @@ const CallbacksPage = () => {
 
   const [locationFilter, setLocationFilter] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
+  const [previewCallback, setPreviewCallback] = useState(null);
+  const adminRoles = ["admin", "superadmin"];
+  const isAdmin = adminRoles.includes(authState?.user?.role);
 
   const updateState = (updates) =>
     setCallbacksState((prev) => ({ ...prev, ...updates }));
@@ -234,11 +264,18 @@ const CallbacksPage = () => {
   };
 
   const handleDelete = async (id) => {
+    if (!isAdmin) {
+      toast.error("Only admins can delete callbacks.");
+      return;
+    }
     if (!window.confirm("Delete this callback request?")) return;
     updateState({ loading: true });
     try {
       await callbacksApi.remove(id);
       toast.success("Callback deleted.");
+      if (previewCallback && previewCallback._id === id) {
+        setPreviewCallback(null);
+      }
       loadCallbacks();
     } catch (err) {
       toast.error(err.message);
@@ -443,6 +480,62 @@ const CallbacksPage = () => {
                 </div>
               </form>
           </Modal>
+          <Modal
+            open={Boolean(previewCallback)}
+            title="Callback preview"
+            onClose={() => setPreviewCallback(null)}
+          >
+            {previewCallback && (
+              <div className="callback-preview">
+                {previewCallback.imageUrl ? (
+                  <div className="callback-preview-media">
+                    <img
+                      src={previewCallback.imageUrl}
+                      alt={previewCallback.fullName}
+                      className="callback-preview-image"
+                    />
+                    <div className="callback-preview-actions">
+                      <a
+                        className="ghost"
+                        href={previewCallback.imageUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Open full size
+                      </a>
+                      <a
+                        className="ghost"
+                        href={previewCallback.imageUrl}
+                        download
+                      >
+                        Download image
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="callback-preview-placeholder">
+                    No image uploaded
+                  </div>
+                )}
+                <div className="callback-preview-details">
+                  <h3>{previewCallback.fullName}</h3>
+                  <p className="muted">
+                    {previewCallback.phoneNumber} - {previewCallback.email}
+                  </p>
+                  <p className="meta">
+                    {previewCallback.location} - {previewCallback.status}
+                  </p>
+                  {previewCallback.description && (
+                    <p>{previewCallback.description}</p>
+                  )}
+                  <div className="callback-preview-meta">
+                    <span className="muted">Admin comment</span>
+                    <p>{previewCallback.adminComment || "No comment"}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </Modal>
 
           <div className="card list">
             <div className="card-header">
@@ -507,6 +600,8 @@ const CallbacksPage = () => {
                   onUpdate={handleUpdate}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onPreview={setPreviewCallback}
+                  isAdmin={isAdmin}
                   disabled={loading}
                 />
               ))}

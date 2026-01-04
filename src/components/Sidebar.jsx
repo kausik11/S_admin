@@ -1,17 +1,19 @@
 import { NavLink } from "react-router-dom";
 import { FiChevronLeft, FiChevronRight, FiX } from "react-icons/fi";
+import { VscLayoutSidebarLeft } from "react-icons/vsc";
+import { VscLayoutSidebarRight } from "react-icons/vsc";
 
 const Sidebar = ({ items, collapsed, onToggle, mobileOpen, onMobileClose }) => (
   <>
     <aside className={collapsed ? "sidebar is-collapsed" : "sidebar"}>
       <div className="sidebar-brand">
-        <span className="brand-pill">NIT</span>
+        <span className="brand-pill">SB</span>
         <div className="brand-text">
           <p>Admin Panel</p>
           <small>Operations</small>
         </div>
         <button className="sidebar-toggle" type="button" onClick={onToggle}>
-          {collapsed ? <FiChevronRight aria-hidden /> : <FiChevronLeft aria-hidden />}
+          {collapsed ? <VscLayoutSidebarLeft aria-hidden /> : <VscLayoutSidebarRight aria-hidden />}
         </button>
         <button className="sidebar-close" type="button" onClick={onMobileClose}>
           <FiX aria-hidden />

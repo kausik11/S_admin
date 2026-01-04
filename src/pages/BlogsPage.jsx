@@ -11,11 +11,32 @@ import "react-quill/dist/quill.snow.css";
 const CATEGORY_OPTIONS = ["cancer", "kidney", "heart", "nerve", "spinal", "other"];
 
 const BlogsPage = () => {
-  const { blogsState, setBlogsState } = useAdminState();
+  const { blogsState, setBlogsState, authState } = useAdminState();
   const { blogs, form, showForm, editingId, fileKey, page, pageSize, loading } =
     blogsState;
   const [searchTitle, setSearchTitle] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const adminRoles = ["admin", "superadmin"];
+  const isAdmin = adminRoles.includes(authState?.user?.role);
+
+  const formatComment = (comment) => {
+    if (!comment) return "Comment";
+    if (typeof comment === "string") return comment;
+    const author =
+      comment.name ||
+      comment.fullName ||
+      comment.author ||
+      comment.email ||
+      "";
+    const body =
+      comment.message ||
+      comment.comment ||
+      comment.text ||
+      comment.body ||
+      "";
+    if (author && body) return `${author}: ${body}`;
+    return body || author || "Comment";
+  };
 
   const updateState = (updates) => setBlogsState((prev) => ({ ...prev, ...updates }));
 
@@ -126,6 +147,10 @@ const BlogsPage = () => {
   };
 
   const handleDelete = async (id) => {
+    if (!isAdmin) {
+      toast.error("Only admins can delete blogs.");
+      return;
+    }
     if (!window.confirm("Delete this blog?")) return;
     updateState({ loading: true });
     try {
@@ -366,6 +391,18 @@ const BlogsPage = () => {
                     <span className="muted">Tip: </span>
                     {blog.quickClinicalTip}
                   </p>
+                  {(blog.comments || []).length > 0 && (
+                    <details className="blog-comments">
+                      <summary>Comments ({blog.comments.length})</summary>
+                      <ul className="blog-comments-list">
+                        {blog.comments.map((comment, index) => (
+                          <li key={comment._id || comment.id || index} className="blog-comment">
+                            {formatComment(comment)}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
                 </div>
                 <div className="blog-actions">
                   <button
@@ -379,17 +416,19 @@ const BlogsPage = () => {
                     </span>
                     Edit
                   </button>
-                  <button
-                    className="danger ghost"
-                    type="button"
-                    onClick={() => handleDelete(blog._id)}
-                    disabled={loading}
-                  >
-                    <span className="button-icon">
-                      <FiTrash2 aria-hidden />
-                    </span>
-                    Delete
-                  </button>
+                  {isAdmin && (
+                    <button
+                      className="danger ghost"
+                      type="button"
+                      onClick={() => handleDelete(blog._id)}
+                      disabled={loading}
+                    >
+                      <span className="button-icon">
+                        <FiTrash2 aria-hidden />
+                      </span>
+                      Delete
+                    </button>
+                  )}
                 </div>
               </article>
             ))}

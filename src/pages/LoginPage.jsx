@@ -36,9 +36,9 @@ const LoginPage = () => {
     <div className="auth-shell">
       <div className="auth-card">
         <div className="auth-brand">
-          <span className="brand-pill">NIT</span>
+          <span className="brand-pill">SB</span>
           <div>
-            <h1>Admin Access</h1>
+            <h1>Sourav Banerjee</h1>
             <p>Sign in to manage the platform.</p>
           </div>
         </div>

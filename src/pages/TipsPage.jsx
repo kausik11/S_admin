@@ -12,7 +12,7 @@ const stripHtml = (value) =>
   value ? value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() : "";
 
 const TipsPage = () => {
-  const { tipsState, setTipsState } = useAdminState();
+  const { tipsState, setTipsState, authState } = useAdminState();
   const {
     tips,
     form,
@@ -23,6 +23,8 @@ const TipsPage = () => {
     page,
     pageSize,
   } = tipsState;
+  const adminRoles = ["admin", "superadmin"];
+  const isAdmin = adminRoles.includes(authState?.user?.role);
 
   const updateState = (updates) =>
     setTipsState((prev) => ({ ...prev, ...updates }));
@@ -92,6 +94,10 @@ const TipsPage = () => {
   };
 
   const handleDelete = async (id) => {
+    if (!isAdmin) {
+      toast.error("Only admins can delete tips.");
+      return;
+    }
     updateState({ loading: true });
 
     try {
@@ -271,17 +277,19 @@ const TipsPage = () => {
                         </span>
                         Edit
                       </button>
-                      <button
-                        className="danger ghost"
-                        type="button"
-                        onClick={() => handleDelete(tip._id)}
-                        disabled={loading}
-                      >
-                        <span className="button-icon">
-                          <FiTrash2 aria-hidden />
-                        </span>
-                        Delete
-                      </button>
+                      {isAdmin && (
+                        <button
+                          className="danger ghost"
+                          type="button"
+                          onClick={() => handleDelete(tip._id)}
+                          disabled={loading}
+                        >
+                          <span className="button-icon">
+                            <FiTrash2 aria-hidden />
+                          </span>
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </article>
                 ))}

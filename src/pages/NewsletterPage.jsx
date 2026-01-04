@@ -7,10 +7,12 @@ import Modal from "../components/Modal";
 import { useAdminState } from "../context/AdminState.jsx";
 
 const NewsletterPage = () => {
-  const { newsletterState, setNewsletterState } = useAdminState();
+  const { newsletterState, setNewsletterState, authState } = useAdminState();
   const { subscriptions, form, showForm, editingId, page, pageSize, loading } =
     newsletterState;
   const [selectedDate, setSelectedDate] = useState("");
+  const adminRoles = ["admin", "superadmin"];
+  const isAdmin = adminRoles.includes(authState?.user?.role);
 
   const updateState = (updates) =>
     setNewsletterState((prev) => ({ ...prev, ...updates }));
@@ -117,6 +119,10 @@ const NewsletterPage = () => {
   };
 
   const handleDelete = async (id) => {
+    if (!isAdmin) {
+      toast.error("Only admins can delete subscribers.");
+      return;
+    }
     updateState({ loading: true });
     try {
       await newsletterApi.remove(id);
@@ -259,17 +265,19 @@ const NewsletterPage = () => {
                       </span>
                       Edit
                     </button>
-                    <button
-                      className="danger ghost"
-                      type="button"
-                      onClick={() => handleDelete(subscription._id)}
-                      disabled={loading}
-                    >
-                      <span className="button-icon">
-                        <FiTrash2 aria-hidden />
-                      </span>
-                      Delete
-                    </button>
+                    {isAdmin && (
+                      <button
+                        className="danger ghost"
+                        type="button"
+                        onClick={() => handleDelete(subscription._id)}
+                        disabled={loading}
+                      >
+                        <span className="button-icon">
+                          <FiTrash2 aria-hidden />
+                        </span>
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </li>
               ))}

@@ -7,9 +7,11 @@ import Modal from "../components/Modal";
 import { useAdminState } from "../context/AdminState.jsx";
 
 const TestimonialsPage = () => {
-  const { testimonialsState, setTestimonialsState } = useAdminState();
+  const { testimonialsState, setTestimonialsState, authState } = useAdminState();
   const { testimonials, form, showForm, editingId, fileKey, page, pageSize, loading } =
     testimonialsState;
+  const adminRoles = ["admin", "superadmin"];
+  const isAdmin = adminRoles.includes(authState?.user?.role);
 
   const updateState = (updates) =>
     setTestimonialsState((prev) => ({ ...prev, ...updates }));
@@ -80,6 +82,10 @@ const TestimonialsPage = () => {
   };
 
   const handleDelete = async (id) => {
+    if (!isAdmin) {
+      toast.error("Only admins can delete testimonials.");
+      return;
+    }
     updateState({ loading: true });
 
     try {
@@ -252,17 +258,19 @@ const TestimonialsPage = () => {
                       </span>
                       Edit
                     </button>
-                    <button
-                      className="danger ghost"
-                      type="button"
-                      onClick={() => handleDelete(item._id)}
-                      disabled={loading}
-                    >
-                      <span className="button-icon">
-                        <FiTrash2 aria-hidden />
-                      </span>
-                      Delete
-                    </button>
+                    {isAdmin && (
+                      <button
+                        className="danger ghost"
+                        type="button"
+                        onClick={() => handleDelete(item._id)}
+                        disabled={loading}
+                      >
+                        <span className="button-icon">
+                          <FiTrash2 aria-hidden />
+                        </span>
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </li>
               ))}

@@ -16,9 +16,11 @@ const TAG_OPTIONS = [
 ];
 
 const GalleryPage = () => {
-  const { galleryState, setGalleryState } = useAdminState();
+  const { galleryState, setGalleryState, authState } = useAdminState();
   const { items, form, filter, fileKey, showForm, editingId, page, pageSize, loading } =
     galleryState;
+  const adminRoles = ["admin", "superadmin"];
+  const isAdmin = adminRoles.includes(authState?.user?.role);
 
   const updateState = (updates) =>
     setGalleryState((prev) => ({ ...prev, ...updates }));
@@ -95,6 +97,10 @@ const GalleryPage = () => {
   };
 
   const handleDelete = async (id) => {
+    if (!isAdmin) {
+      toast.error("Only admins can delete gallery items.");
+      return;
+    }
     updateState({ loading: true });
 
     try {
@@ -276,17 +282,19 @@ const GalleryPage = () => {
                       </span>
                       Edit
                     </button>
-                    <button
-                      className="danger ghost"
-                      type="button"
-                      onClick={() => handleDelete(item._id)}
-                      disabled={loading}
-                    >
-                      <span className="button-icon">
-                        <FiTrash2 aria-hidden />
-                      </span>
-                      Delete
-                    </button>
+                    {isAdmin && (
+                      <button
+                        className="danger ghost"
+                        type="button"
+                        onClick={() => handleDelete(item._id)}
+                        disabled={loading}
+                      >
+                        <span className="button-icon">
+                          <FiTrash2 aria-hidden />
+                        </span>
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </article>
               ))}
