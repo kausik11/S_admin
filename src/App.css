@@ -15,10 +15,12 @@
   color: var(--text);
   padding: 28px 20px;
   display: grid;
+  grid-template-rows: auto 1fr;
   gap: 24px;
   position: sticky;
   top: 0;
   height: 100vh;
+  overflow: hidden;
   border-right: 1px solid var(--border);
   transition: padding 0.2s ease;
 }
@@ -67,6 +69,9 @@
 .sidebar-nav {
   display: grid;
   gap: 10px;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 4px;
 }
 
 .nav-item {

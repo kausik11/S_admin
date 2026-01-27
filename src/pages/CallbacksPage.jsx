@@ -9,12 +9,10 @@ import {
   FiRefreshCcw,
   FiTrash2,
 } from "react-icons/fi";
-import { callbacksApi } from "../api";
+import { callbacksApi, chambersApi } from "../api";
 import LoadingOverlay from "../components/LoadingOverlay";
 import Modal from "../components/Modal";
 import { initialCallbackForm, useAdminState } from "../context/AdminState.jsx";
-
-const LOCATION_OPTIONS = ["kolkata", "howrah", "bardhaman"];
 
 const CallbackItem = ({
   callback,
@@ -43,16 +41,13 @@ const CallbackItem = ({
 
   return (
     <article className="callback-card">
-      {callback.imageUrl && (
-        <img src={callback.imageUrl} alt={callback.fullName} className="callback-cover" />
-      )}
       <div className="callback-body">
         <h3>{callback.fullName}</h3>
         <p className="muted">
           {callback.phoneNumber} - {callback.email}
         </p>
         <p className="meta">
-          {callback.location} - {callback.status}
+          {callback.chamberName} - {callback.status}
         </p>
         {callback.createdAt && (
           <p className="muted">
@@ -140,7 +135,6 @@ const CallbacksPage = () => {
   const {
     callbacks,
     form,
-    fileKey,
     page,
     pageSize,
     showForm,
@@ -148,7 +142,8 @@ const CallbacksPage = () => {
     loading,
   } = callbacksState;
 
-  const [locationFilter, setLocationFilter] = useState("");
+  const [chamberFilter, setChamberFilter] = useState("");
+  const [chamberOptions, setChamberOptions] = useState([]);
   const [selectedDate, setSelectedDate] = useState("");
   const [previewCallback, setPreviewCallback] = useState(null);
   const adminRoles = ["admin", "superadmin"];
@@ -169,19 +164,29 @@ const CallbacksPage = () => {
     }
   };
 
+  const loadChambers = async () => {
+    try {
+      const data = await chambersApi.list();
+      setChamberOptions(data || []);
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
   useEffect(() => {
     loadCallbacks();
+    loadChambers();
   }, []);
 
   const filteredCallbacks = callbacks.filter((callback) => {
-    const matchesLocation = locationFilter
-      ? callback.location === locationFilter
+    const matchesChamber = chamberFilter
+      ? callback.chamberName === chamberFilter
       : true;
     const matchesDate = selectedDate
       ? callback.createdAt &&
         new Date(callback.createdAt).toISOString().slice(0, 10) === selectedDate
       : true;
-    return matchesLocation && matchesDate;
+    return matchesChamber && matchesDate;
   });
 
   useEffect(() => {
@@ -199,7 +204,6 @@ const CallbacksPage = () => {
     setCallbacksState((prev) => ({
       ...prev,
       form: initialCallbackForm,
-      fileKey: prev.fileKey + 1,
       showForm: false,
       editingId: "",
     }));
@@ -210,18 +214,11 @@ const CallbacksPage = () => {
     updateState({ loading: true });
 
     try {
-      const formData = new FormData();
-      Object.entries(form).forEach(([key, value]) => {
-        if (value !== null && value !== "") {
-          formData.append(key, value);
-        }
-      });
-
       if (editingId) {
-        await callbacksApi.update(editingId, formData);
+        await callbacksApi.update(editingId, form);
         toast.success("Callback request updated.");
       } else {
-        await callbacksApi.create(formData);
+        await callbacksApi.create(form);
         toast.success("Callback request created.");
       }
       resetForm();
@@ -253,13 +250,11 @@ const CallbacksPage = () => {
         fullName: callback.fullName || "",
         phoneNumber: callback.phoneNumber || "",
         email: callback.email || "",
-        location: callback.location || LOCATION_OPTIONS[0],
+        chamberName: callback.chamberName || "",
         description: callback.description || "",
-        image: null,
       },
       showForm: true,
       editingId: callback._id,
-      fileKey: prev.fileKey + 1,
     }));
   };
 
@@ -300,7 +295,7 @@ const CallbacksPage = () => {
         "Full Name",
         "Phone",
         "Email",
-        "Location",
+        "Chamber",
         "Status",
         "Admin Comment",
         "Description",
@@ -310,7 +305,7 @@ const CallbacksPage = () => {
         callback.fullName,
         callback.phoneNumber,
         callback.email,
-        callback.location,
+        callback.chamberName,
         callback.status,
         callback.adminComment || "",
         callback.description || "",
@@ -350,7 +345,6 @@ const CallbacksPage = () => {
                 showForm: true,
                 editingId: "",
                 form: initialCallbackForm,
-                fileKey: prev.fileKey + 1,
               }))
             }
             disabled={loading}
@@ -421,19 +415,21 @@ const CallbacksPage = () => {
                   />
                 </div>
                 <div className="field">
-                  <label>Location</label>
+                  <label>Chamber name</label>
                   <select
-                    value={form.location}
+                    value={form.chamberName}
                     onChange={(event) =>
                       setCallbacksState((prev) => ({
                         ...prev,
-                        form: { ...prev.form, location: event.target.value },
+                        form: { ...prev.form, chamberName: event.target.value },
                       }))
                     }
+                    required
                   >
-                    {LOCATION_OPTIONS.map((location) => (
-                      <option key={location} value={location}>
-                        {location}
+                    <option value="">Select a chamber</option>
+                    {chamberOptions.map((chamber) => (
+                      <option key={chamber._id} value={chamber.name}>
+                        {chamber.name}
                       </option>
                     ))}
                   </select>
@@ -447,20 +443,6 @@ const CallbacksPage = () => {
                       setCallbacksState((prev) => ({
                         ...prev,
                         form: { ...prev.form, description: event.target.value },
-                      }))
-                    }
-                  />
-                </div>
-                <div className="field">
-                  <label>Prescription / affected image</label>
-                  <input
-                    key={fileKey}
-                    type="file"
-                    accept="image/*"
-                    onChange={(event) =>
-                      setCallbacksState((prev) => ({
-                        ...prev,
-                        form: { ...prev.form, image: event.target.files[0] || null },
                       }))
                     }
                   />
@@ -487,43 +469,13 @@ const CallbacksPage = () => {
           >
             {previewCallback && (
               <div className="callback-preview">
-                {previewCallback.imageUrl ? (
-                  <div className="callback-preview-media">
-                    <img
-                      src={previewCallback.imageUrl}
-                      alt={previewCallback.fullName}
-                      className="callback-preview-image"
-                    />
-                    <div className="callback-preview-actions">
-                      <a
-                        className="ghost"
-                        href={previewCallback.imageUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Open full size
-                      </a>
-                      <a
-                        className="ghost"
-                        href={previewCallback.imageUrl}
-                        download
-                      >
-                        Download image
-                      </a>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="callback-preview-placeholder">
-                    No image uploaded
-                  </div>
-                )}
                 <div className="callback-preview-details">
                   <h3>{previewCallback.fullName}</h3>
                   <p className="muted">
                     {previewCallback.phoneNumber} - {previewCallback.email}
                   </p>
                   <p className="meta">
-                    {previewCallback.location} - {previewCallback.status}
+                    {previewCallback.chamberName} - {previewCallback.status}
                   </p>
                   {previewCallback.description && (
                     <p>{previewCallback.description}</p>
@@ -545,19 +497,21 @@ const CallbacksPage = () => {
               </div>
               <div className="filters">
                 <select
-                  value={locationFilter}
+                  value={chamberFilter}
                   onChange={(event) => {
-                    setLocationFilter(event.target.value);
+                    setChamberFilter(event.target.value);
                     updateState({ page: 1 });
                   }}
                   disabled={loading}
                 >
-                  <option value="">All locations</option>
-                  {LOCATION_OPTIONS.map((location) => (
-                    <option key={location} value={location}>
-                      {location}
-                    </option>
-                  ))}
+                  <option value="">All chambers</option>
+                  {[...new Set(callbacks.map((callback) => callback.chamberName))]
+                    .filter(Boolean)
+                    .map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
                 </select>
                 <input
                   type="date"

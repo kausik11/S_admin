@@ -16,14 +16,20 @@ import TestimonialsPage from "./pages/TestimonialsPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import TipsPage from "./pages/TipsPage";
+import ChambersPage from "./pages/ChambersPage";
+import CertificatesPage from "./pages/CertificatesPage";
+import VideoGalleryPage from "./pages/VideoGalleryPage";
 import { authApi } from "./api";
 import UsersPage from "./pages/UsersPage";
 import {
+  FiAward,
   FiBookOpen,
   FiClipboard,
   FiGrid,
   FiHelpCircle,
   FiImage,
+  FiMapPin,
+  FiVideo,
   FiUsers,
   FiMail,
   FiMessageCircle,
@@ -85,11 +91,32 @@ const App = () => {
         component: ServicesPage,
       },
       {
+        id: "certificates",
+        label: "Certificates",
+        path: "/certificates",
+        icon: FiAward,
+        component: CertificatesPage,
+      },
+      {
+        id: "video-gallery",
+        label: "Video Gallery",
+        path: "/video-gallery",
+        icon: FiVideo,
+        component: VideoGalleryPage,
+      },
+      {
         id: "tips",
         label: "Tips",
         path: "/tips",
         icon: FiClipboard,
         component: TipsPage,
+      },
+      {
+        id: "chambers",
+        label: "Chambers",
+        path: "/chambers",
+        icon: FiMapPin,
+        component: ChambersPage,
       },
       {
         id: "users",

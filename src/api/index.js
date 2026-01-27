@@ -36,12 +36,9 @@ const formConfig = {
 
 export const callbacksApi = {
   list: () => api.get("/api/callbacks").then((res) => res.data),
-  create: (formData) =>
-    api.post("/api/callbacks", formData, formConfig).then((res) => res.data),
-  update: (id, body) => {
-    const config = body instanceof FormData ? formConfig : undefined;
-    return api.put(`/api/callbacks/${id}`, body, config).then((res) => res.data);
-  },
+  create: (body) => api.post("/api/callbacks", body).then((res) => res.data),
+  update: (id, body) =>
+    api.put(`/api/callbacks/${id}`, body).then((res) => res.data),
   remove: (id) => api.delete(`/api/callbacks/${id}`).then((res) => res.data),
 };
 
@@ -115,6 +112,38 @@ export const tipsApi = {
     return api.put(`/api/tips/${id}`, body, config).then((res) => res.data);
   },
   remove: (id) => api.delete(`/api/tips/${id}`).then((res) => res.data),
+};
+
+export const certificatesApi = {
+  list: () => api.get("/api/certificates").then((res) => res.data),
+  create: (formData) =>
+    api.post("/api/certificates", formData, formConfig).then((res) => res.data),
+  update: (id, formData) =>
+    api.put(`/api/certificates/${id}`, formData, formConfig).then((res) => res.data),
+  remove: (id) => api.delete(`/api/certificates/${id}`).then((res) => res.data),
+};
+
+export const videoGalleryApi = {
+  list: () => api.get("/api/video-gallery").then((res) => res.data),
+  create: (body) => api.post("/api/video-gallery", body).then((res) => res.data),
+  update: (id, body) =>
+    api.put(`/api/video-gallery/${id}`, body).then((res) => res.data),
+  remove: (id) => api.delete(`/api/video-gallery/${id}`).then((res) => res.data),
+};
+
+export const chambersApi = {
+  list: () => api.get("/api/chambers").then((res) => res.data),
+  create: (body) => api.post("/api/chambers", body).then((res) => res.data),
+  update: (id, body) => api.put(`/api/chambers/${id}`, body).then((res) => res.data),
+  remove: (id) => api.delete(`/api/chambers/${id}`).then((res) => res.data),
+  getAvailability: () =>
+    api.get("/api/chambers/availability").then((res) => res.data),
+  createAvailability: (body) =>
+    api.post("/api/chambers/availability", body).then((res) => res.data),
+  updateAvailability: (id, body) =>
+    api.put(`/api/chambers/availability/${id}`, body).then((res) => res.data),
+  removeAvailability: (id) =>
+    api.delete(`/api/chambers/availability/${id}`).then((res) => res.data),
 };
 
 export const authApi = {

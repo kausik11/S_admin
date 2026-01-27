@@ -4,9 +4,8 @@ export const initialCallbackForm = {
   fullName: "",
   phoneNumber: "",
   email: "",
-  location: "kolkata",
+  chamberName: "",
   description: "",
-  image: null,
 };
 
 export const initialServiceForm = {
@@ -45,6 +44,25 @@ export const initialTipForm = {
   title: "",
   text: "",
   image: null,
+};
+
+export const initialCertificateForm = {
+  title: "",
+  year: "",
+  description: "",
+  image: null,
+};
+
+export const initialVideoGalleryForm = {
+  videoLink: "",
+  title: "",
+  description: "",
+};
+
+export const initialChamberForm = {
+  name: "",
+  timings: "",
+  contact: "",
 };
 
 const AdminStateContext = createContext(null);
@@ -158,6 +176,37 @@ export const AdminStateProvider = ({ children }) => {
     loading: false,
   });
 
+  const [certificatesState, setCertificatesState] = useState({
+    certificates: [],
+    form: initialCertificateForm,
+    showForm: false,
+    editingId: "",
+    fileKey: 0,
+    page: 1,
+    pageSize: 3,
+    loading: false,
+  });
+
+  const [videoGalleryState, setVideoGalleryState] = useState({
+    videos: [],
+    form: initialVideoGalleryForm,
+    showForm: false,
+    editingId: "",
+    page: 1,
+    pageSize: 3,
+    loading: false,
+  });
+
+  const [chambersState, setChambersState] = useState({
+    chambers: [],
+    form: initialChamberForm,
+    showForm: false,
+    editingId: "",
+    page: 1,
+    pageSize: 3,
+    loading: false,
+  });
+
   return (
     <AdminStateContext.Provider
       value={{
@@ -185,6 +234,12 @@ export const AdminStateProvider = ({ children }) => {
         setTestimonialsState,
         tipsState,
         setTipsState,
+        certificatesState,
+        setCertificatesState,
+        videoGalleryState,
+        setVideoGalleryState,
+        chambersState,
+        setChambersState,
       }}
     >
       {children}
