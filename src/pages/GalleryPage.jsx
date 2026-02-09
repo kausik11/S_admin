@@ -13,6 +13,7 @@ const TAG_OPTIONS = [
   "events",
   "wellness",
   "nutrition",
+  "certificates",
 ];
 
 const GalleryPage = () => {
