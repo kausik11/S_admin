@@ -99,6 +99,7 @@ const ChambersPage = () => {
       const payload = {
         name: form.name,
         contact: form.contact,
+        address: form.address,
         timings: normalizeTimings(form.timings),
       };
 
@@ -192,6 +193,7 @@ const ChambersPage = () => {
       form: {
         name: chamber.name || "",
         contact: chamber.contact || "",
+        address: chamber.address || "",
         timings: Array.isArray(chamber.timings)
           ? chamber.timings.join("\n")
           : chamber.timings || "",
@@ -387,6 +389,20 @@ const ChambersPage = () => {
                       required
                     />
                   </div>
+                  <div className="field">
+                    <label>Address</label>
+                    <textarea
+                      rows="3"
+                      value={form.address}
+                      onChange={(event) =>
+                        setChambersState((prev) => ({
+                          ...prev,
+                          form: { ...prev.form, address: event.target.value },
+                        }))
+                      }
+                      required
+                    />
+                  </div>
                   <div className="form-actions">
                     <button className="primary" type="submit" disabled={loading}>
                       <span className="button-icon">
@@ -436,6 +452,10 @@ const ChambersPage = () => {
                       <p className="muted">
                         <span className="muted">Contact: </span>
                         {chamber.contact}
+                      </p>
+                      <p className="muted">
+                        <span className="muted">Address: </span>
+                        {chamber.address}
                       </p>
                     </div>
                     <div className="service-actions">

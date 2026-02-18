@@ -63,6 +63,7 @@ export const initialChamberForm = {
   name: "",
   timings: "",
   contact: "",
+  address: "",
 };
 
 const AdminStateContext = createContext(null);
